@@ -14,6 +14,8 @@ export default function TabsLayout() {
   const isDocuments = segments[0] === '(tabs)' && segments[1] === 'documents';
   const isWarranties = segments[0] === '(tabs)' && segments[1] === 'warranties';
   const isHistory = segments[0] === '(tabs)' && segments[1] === 'history';
+  const isSubscriptions = segments[0] === '(tabs)' && segments[1] === 'subscriptions';
+  const isMaintenances = segments[0] === '(tabs)' && segments[1] === 'maintenances';
   const isSettings = segments[0] === '(tabs)' && segments[1] === 'settings';
   const insets = useSafeAreaInsets();
 
@@ -100,6 +102,30 @@ export default function TabsLayout() {
             name={isHistory ? 'time' : 'time-outline'}
             size={24}
             color={isHistory ? '#0f172a' : '#64748b'}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, isSubscriptions && styles.tabActive]}
+          onPress={() => navigateIfNeeded(['(tabs)', 'subscriptions'])}
+          accessibilityRole="button"
+          accessibilityLabel="Assinaturas"
+        >
+          <Ionicons
+            name={isSubscriptions ? 'card' : 'card-outline'}
+            size={24}
+            color={isSubscriptions ? '#0f172a' : '#64748b'}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, isMaintenances && styles.tabActive]}
+          onPress={() => navigateIfNeeded(['(tabs)', 'maintenances'])}
+          accessibilityRole="button"
+          accessibilityLabel="Manutenções"
+        >
+          <Ionicons
+            name={isMaintenances ? 'construct' : 'construct-outline'}
+            size={24}
+            color={isMaintenances ? '#0f172a' : '#64748b'}
           />
         </TouchableOpacity>
         <TouchableOpacity
