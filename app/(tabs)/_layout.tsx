@@ -15,6 +15,20 @@ export default function TabsLayout() {
   const isSettings = segments[0] === '(tabs)' && segments[1] === 'settings';
   const insets = useSafeAreaInsets();
 
+  const navigateIfNeeded = (target: string[]) => {
+    const isTargetReminders = target.length === 1 && target[0] === '(tabs)';
+    const isCurrentReminders = segments[0] === '(tabs)' && (!segments[1] || segments[1] === 'index');
+
+    if (isTargetReminders) {
+      if (isCurrentReminders) return;
+      router.replace('/(tabs)');
+      return;
+    }
+
+    if (target.every((seg, i) => segments[i] === seg)) return;
+    router.replace(target.join('/'));
+  };
+
   return (
     <View style={styles.root}>
       <View style={styles.content}>
@@ -23,7 +37,7 @@ export default function TabsLayout() {
       <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
         <TouchableOpacity
           style={[styles.tab, isReminders && styles.tabActive]}
-          onPress={() => router.replace('/(tabs)')}
+          onPress={() => navigateIfNeeded(['(tabs)'])}
           accessibilityRole="button"
           accessibilityLabel="Lembretes"
         >
@@ -35,7 +49,7 @@ export default function TabsLayout() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, isShipments && styles.tabActive]}
-          onPress={() => router.replace('/(tabs)/shipments')}
+          onPress={() => navigateIfNeeded(['(tabs)', 'shipments'])}
           accessibilityRole="button"
           accessibilityLabel="Encomendas"
         >
@@ -47,7 +61,7 @@ export default function TabsLayout() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, isBills && styles.tabActive]}
-          onPress={() => router.replace('/(tabs)/bills')}
+          onPress={() => navigateIfNeeded(['(tabs)', 'bills'])}
           accessibilityRole="button"
           accessibilityLabel="Contas"
         >
@@ -59,7 +73,7 @@ export default function TabsLayout() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, isHistory && styles.tabActive]}
-          onPress={() => router.replace('/(tabs)/history')}
+          onPress={() => navigateIfNeeded(['(tabs)', 'history'])}
           accessibilityRole="button"
           accessibilityLabel="Histórico"
         >
@@ -71,7 +85,7 @@ export default function TabsLayout() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, isSettings && styles.tabActive]}
-          onPress={() => router.replace('/(tabs)/settings')}
+          onPress={() => navigateIfNeeded(['(tabs)', 'settings'])}
           accessibilityRole="button"
           accessibilityLabel="Configurações"
         >
