@@ -11,6 +11,7 @@ export default function TabsLayout() {
   const isReminders = segments[0] === '(tabs)' && (!segments[1] || segments[1] === 'index');
   const isShipments = segments[0] === '(tabs)' && segments[1] === 'shipments';
   const isBills = segments[0] === '(tabs)' && segments[1] === 'bills';
+  const isDocuments = segments[0] === '(tabs)' && segments[1] === 'documents';
   const isWarranties = segments[0] === '(tabs)' && segments[1] === 'warranties';
   const isHistory = segments[0] === '(tabs)' && segments[1] === 'history';
   const isSettings = segments[0] === '(tabs)' && segments[1] === 'settings';
@@ -63,6 +64,18 @@ export default function TabsLayout() {
             name={isBills ? 'cash' : 'cash-outline'}
             size={24}
             color={isBills ? '#0f172a' : '#64748b'}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, isDocuments && styles.tabActive]}
+          onPress={() => navigateIfNeeded(['(tabs)', 'documents'])}
+          accessibilityRole="button"
+          accessibilityLabel="Documentos"
+        >
+          <Ionicons
+            name={isDocuments ? 'document-text' : 'document-text-outline'}
+            size={24}
+            color={isDocuments ? '#0f172a' : '#64748b'}
           />
         </TouchableOpacity>
         <TouchableOpacity
