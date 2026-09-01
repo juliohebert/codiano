@@ -11,9 +11,17 @@ export default function TabsLayout() {
   const isReminders = segments[0] === '(tabs)' && (!segments[1] || segments[1] === 'index');
   const isShipments = segments[0] === '(tabs)' && segments[1] === 'shipments';
   const isBills = segments[0] === '(tabs)' && segments[1] === 'bills';
+  const isWarranties = segments[0] === '(tabs)' && segments[1] === 'warranties';
   const isHistory = segments[0] === '(tabs)' && segments[1] === 'history';
   const isSettings = segments[0] === '(tabs)' && segments[1] === 'settings';
   const insets = useSafeAreaInsets();
+
+  const navigateIfNeeded = (target: string[]) => {
+    const currentTab = segments[1] === 'index' ? '(tabs)' : segments[1];
+    const targetTab = target[1] === 'index' ? '(tabs)' : target[1];
+    if (currentTab === targetTab) return;
+    router.replace(target.join('/'));
+  };
 
   return (
     <View style={styles.root}>
@@ -23,7 +31,7 @@ export default function TabsLayout() {
       <View style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
         <TouchableOpacity
           style={[styles.tab, isReminders && styles.tabActive]}
-          onPress={() => router.replace('/(tabs)')}
+          onPress={() => navigateIfNeeded(['(tabs)'])}
           accessibilityRole="button"
           accessibilityLabel="Lembretes"
         >
@@ -35,7 +43,7 @@ export default function TabsLayout() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, isShipments && styles.tabActive]}
-          onPress={() => router.replace('/(tabs)/shipments')}
+          onPress={() => navigateIfNeeded(['(tabs)', 'shipments'])}
           accessibilityRole="button"
           accessibilityLabel="Encomendas"
         >
@@ -47,7 +55,7 @@ export default function TabsLayout() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, isBills && styles.tabActive]}
-          onPress={() => router.replace('/(tabs)/bills')}
+          onPress={() => navigateIfNeeded(['(tabs)', 'bills'])}
           accessibilityRole="button"
           accessibilityLabel="Contas"
         >
@@ -58,8 +66,20 @@ export default function TabsLayout() {
           />
         </TouchableOpacity>
         <TouchableOpacity
+          style={[styles.tab, isWarranties && styles.tabActive]}
+          onPress={() => navigateIfNeeded(['(tabs)', 'warranties'])}
+          accessibilityRole="button"
+          accessibilityLabel="Garantias"
+        >
+          <Ionicons
+            name={isWarranties ? 'shield' : 'shield-outline'}
+            size={24}
+            color={isWarranties ? '#0f172a' : '#64748b'}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
           style={[styles.tab, isHistory && styles.tabActive]}
-          onPress={() => router.replace('/(tabs)/history')}
+          onPress={() => navigateIfNeeded(['(tabs)', 'history'])}
           accessibilityRole="button"
           accessibilityLabel="Histórico"
         >
@@ -71,7 +91,7 @@ export default function TabsLayout() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, isSettings && styles.tabActive]}
-          onPress={() => router.replace('/(tabs)/settings')}
+          onPress={() => navigateIfNeeded(['(tabs)', 'settings'])}
           accessibilityRole="button"
           accessibilityLabel="Configurações"
         >

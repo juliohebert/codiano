@@ -93,6 +93,18 @@ export default function RootLayout() {
               headerShadowVisible: false
             }}
           />
+          <Stack.Screen
+            name="warranty/[id]"
+            options={{
+              headerShown: true,
+              headerBackTitle: 'Voltar',
+              headerTitle: 'Garantia',
+              headerStyle: { backgroundColor: '#f8fafc' },
+              headerTintColor: '#0f172a',
+              headerTitleStyle: { fontWeight: '600', color: '#0f172a' },
+              headerShadowVisible: false
+            }}
+          />
           <Stack.Screen name="splash" options={{ headerShown: false }} />
         </Stack>
       </RefreshProvider>
