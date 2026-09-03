@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { loadDocuments } from '../../src/documents/storage';
 import type { Document } from '../../src/documents/types';
+import { formatDateLocal } from '../../src/common/dates';
 
 type Tab = 'active' | 'expired';
 
@@ -18,7 +19,7 @@ function classify(document: Document): 'active' | 'expired' {
 
 function formatDate(value: string) {
   try {
-    return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value));
+    return formatDateLocal(value);
   } catch {
     return value;
   }

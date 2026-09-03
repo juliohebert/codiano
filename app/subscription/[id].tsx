@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { loadSubscriptions, updateSubscription, removeSubscription } from '../../src/subscriptions/storage';
 import type { Subscription } from '../../src/subscriptions/types';
+import { formatDateLocal, toLocalDate } from '../../src/common/dates';
 
 function formatCurrency(value?: number) {
   if (typeof value !== 'number') return '—';
@@ -16,7 +17,7 @@ function formatCurrency(value?: number) {
 
 function formatDate(value: string) {
   try {
-    return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value));
+    return formatDateLocal(value);
   } catch {
     return value;
   }

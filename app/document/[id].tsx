@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { loadDocuments, removeDocument } from '../../src/documents/storage';
 import type { Document } from '../../src/documents/types';
 import { AttachmentCard } from '../../src/common/attachment-card';
+import { formatDateLocal } from '../../src/common/dates';
 
 function formatDate(value: string) {
   try {
-    return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value));
+    return formatDateLocal(value);
   } catch {
     return value;
   }

@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Document, DocumentStatus } from './types';
+import { parseLocalDate, toLocalDate } from '../../src/common/dates';
 
 const STORAGE_KEY = '@georeminder:documents';
 
@@ -51,7 +52,7 @@ export function classifyDocumentStatus(validUntil: string, status: DocumentStatu
   if (status === 'expired') return 'expired';
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const due = new Date(validUntil);
-  due.setHours(0, 0, 0, 0);
+  const { year, month, day } = parseLocalDate(validUntil);
+  const due = toLocalDate(year, month, day);
   return due < today ? 'expired' : 'active';
 }

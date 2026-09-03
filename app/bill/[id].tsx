@@ -6,6 +6,7 @@ import { loadBills, updateBill, removeBill, addBill } from '../../src/bills/stor
 import { scheduleBillAfterSave } from '../../src/bills/notifications';
 import { cancelBillNotification } from '../../src/notifications/bills';
 import type { Bill, BillRecurrence } from '../../src/bills/types';
+import { formatDateLocal, toLocalDate, addDaysLocal } from '../../src/common/dates';
 
 function addMonths(date: string, months: number): string {
   const digits = date.replace(/\D/g, '').slice(0, 8);
@@ -37,7 +38,7 @@ function formatCurrency(value?: number) {
 
 function formatDate(value: string) {
   try {
-    return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value));
+    return formatDateLocal(value);
   } catch {
     return value;
   }

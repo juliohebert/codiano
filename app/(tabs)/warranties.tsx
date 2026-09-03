@@ -1,20 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, Text, FlatList, Pressable, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useFocusEffect } from 'expo-router';
-import { loadSubscriptions } from '../../src/subscriptions/storage';
-import type { Subscription } from '../../src/subscriptions/types';
-import { formatDateLocal, toLocalDate } from '../../src/common/dates';
+import { router } from 'expo-router';
+import { loadWarranties } from '../../src/warranties/storage';
+import type { Warranty } from '../../src/warranties/types';
+import { formatDateLocal } from '../../src/common/dates';
 
-type SubscriptionStatus = 'active' | 'paused' | 'cancelled';
+type Tab = 'active' | 'expired';
 
-type Section = { key: SubscriptionStatus; title: string; data: Subscription[] };
-
-const SECTIONS: { key: SubscriptionStatus; title: string }[] = [
-  { key: 'active', title: 'Ativas' },
-  { key: 'paused', title: 'Pausadas' },
-  { key: 'cancelled', title: 'Canceladas' }
+const TABS: { key: Tab; label: string }[] = [
+  { key: 'active', label: 'Ativas' },
+  { key: 'expired', label: 'Vencidas' }
 ];
+
+function classify(warranty: Warranty): 'active' | 'expired' {
+  return warranty.status === 'expired' ? 'expired' : 'active';
+}
 
 function formatCurrency(value?: number) {
   if (typeof value !== 'number') return '';
@@ -33,20 +34,20 @@ function formatDate(value: string) {
   }
 }
 
-export default function SubscriptionsScreen() {
+export default function WarrantiesScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
-  const [tab, setTab] = useState<SubscriptionStatus>('active');
+  const [warranties, setWarranties] = useState<Warranty[]>([]);
+  const [tab, setTab] = useState<Tab>('active');
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await loadSubscriptions();
-      setSubscriptions(data);
+      const data = await loadWarranties();
+      setWarranties(data);
     } catch {
-      setError('Não foi possível carregar suas assinaturas.');
+      setError('Não foi possível carregar as garantias.');
     } finally {
       setLoading(false);
     }
@@ -56,48 +57,28 @@ export default function SubscriptionsScreen() {
     refresh();
   }, [refresh]);
 
-  useFocusEffect(
-    useCallback(() => {
-      refresh();
-    }, [refresh])
-  );
+  const visible = warranties.filter((item) => classify(item) === tab);
 
-  const sections: Section[] = useMemo(() => {
-    const grouped = new Map<SubscriptionStatus, Subscription[]>();
-    for (const section of SECTIONS) {
-      grouped.set(section.key, []);
-    }
-    for (const subscription of subscriptions) {
-      const key = subscription.status;
-      grouped.set(key, [...(grouped.get(key) ?? []), subscription]);
-    }
-    const sorted = (items: Subscription[]) =>
-      [...items].sort((a, b) => new Date(a.nextDueDate).getTime() - new Date(b.nextDueDate).getTime());
-    return SECTIONS.map((section) => ({
-      key: section.key,
-      title: section.title,
-      data: sorted(grouped.get(section.key) ?? [])
-    }));
-  }, [subscriptions]);
-
-  const activeSection = useMemo(() => sections.find((item) => item.key === tab) ?? { key: tab, title: '', data: [] }, [sections, tab]);
-
-  const renderItem = ({ item }: { item: Subscription }) => {
-    const statusColor = item.status === 'cancelled' ? '#991b1b' : item.status === 'paused' ? '#92400e' : '#1e3a8a';
-    const statusBackground = item.status === 'cancelled' ? '#fef2f2' : item.status === 'paused' ? '#fff7ed' : '#eef2ff';
-    const statusLabel = item.status === 'active' ? 'Ativa' : item.status === 'paused' ? 'Pausada' : 'Cancelada';
+  const renderItem = ({ item }: { item: Warranty }) => {
+    const statusColor = classify(item) === 'expired' ? '#991b1b' : '#1e3a8a';
+    const statusBackground = classify(item) === 'expired' ? '#fef2f2' : '#eef2ff';
+    const statusLabel = classify(item) === 'expired' ? 'Vencida' : 'Ativa';
     return (
-      <Pressable style={styles.item} onPress={() => router.push(`/subscription/${item.id}`)}>
+      <Pressable style={styles.item} onPress={() => router.push(`/warranty/${item.id}`)}>
         <View style={styles.itemHeader}>
-          <Text style={styles.itemTitle} numberOfLines={1}>{item.name}</Text>
+          <Text style={styles.itemTitle} numberOfLines={1}>{item.product}</Text>
           <View style={[styles.badge, { backgroundColor: statusBackground }]}>
             <Text style={[styles.badgeText, { color: statusColor }]}>{statusLabel}</Text>
           </View>
         </View>
         <View style={styles.itemMetaRow}>
-          <Text style={styles.itemMeta}>{formatDate(item.nextDueDate)}</Text>
+          <Text style={styles.itemMeta}>Compra: {formatDate(item.purchaseDate)}</Text>
           {typeof item.amount === 'number' ? <Text style={styles.itemAmount}>{formatCurrency(item.amount)}</Text> : null}
         </View>
+        <View style={styles.itemMetaRow}>
+          <Text style={styles.itemMeta}>Validade: {formatDate(item.validUntil)}</Text>
+        </View>
+        {!!item.store ? <Text style={styles.itemMeta}>Loja: {item.store}</Text> : null}
         {!!item.note ? <Text style={styles.itemNote} numberOfLines={2}>{item.note}</Text> : null}
       </Pressable>
     );
@@ -106,12 +87,12 @@ export default function SubscriptionsScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top','left','right']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Assinaturas</Text>
-        <Text style={styles.headerSubtitle}>Controle assinaturas recorrentes.</Text>
+        <Text style={styles.headerTitle}>Garantias</Text>
+        <Text style={styles.headerSubtitle}>Acompanhe compras e validades.</Text>
       </View>
 
       <View style={styles.tabRow}>
-        {SECTIONS.map((item) => {
+        {TABS.map((item) => {
           const selected = tab === item.key;
           return (
             <Pressable
@@ -119,9 +100,9 @@ export default function SubscriptionsScreen() {
               onPress={() => setTab(item.key)}
               style={[styles.tab, selected && styles.tabActive]}
               accessibilityRole="button"
-              accessibilityLabel={item.title}
+              accessibilityLabel={item.label}
             >
-              <Text style={[styles.tabLabel, selected && styles.tabLabelActive]}>{item.title}</Text>
+              <Text style={[styles.tabLabel, selected && styles.tabLabelActive]}>{item.label}</Text>
             </Pressable>
           );
         })}
@@ -131,23 +112,23 @@ export default function SubscriptionsScreen() {
         <View style={styles.statusBox}>
           <ActivityIndicator color="#0f172a" />
           <Text style={styles.statusTitle}>Carregando</Text>
-          <Text style={styles.statusText}>Buscando suas assinaturas...</Text>
+          <Text style={styles.statusText}>Buscando suas garantias...</Text>
         </View>
       ) : error ? (
         <View style={styles.statusBox}>
           <Text style={styles.statusTitle}>Algo deu errado</Text>
           <Text style={styles.statusText}>{error}</Text>
         </View>
-      ) : activeSection.data.length === 0 ? (
+      ) : visible.length === 0 ? (
         <View style={styles.statusBox}>
-          <Text style={styles.statusTitle}>Nenhuma assinatura</Text>
-          <Text style={styles.statusText}>Cadastre uma assinatura para começar.</Text>
+          <Text style={styles.statusTitle}>Nenhuma garantia</Text>
+          <Text style={styles.statusText}>Cadastre uma compra para começar.</Text>
         </View>
       ) : (
         <FlatList
           style={{ flex: 1 }}
           contentContainerStyle={styles.listContent}
-          data={activeSection.data}
+          data={visible}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
         />
@@ -155,9 +136,9 @@ export default function SubscriptionsScreen() {
 
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => router.push('/subscription-form')}
+        onPress={() => router.push('/(tabs)/warranty-form')}
         accessibilityRole="button"
-        accessibilityLabel="Adicionar assinatura"
+        accessibilityLabel="Adicionar garantia"
         activeOpacity={0.85}
       >
         <Text style={styles.fabLabel}>＋</Text>
