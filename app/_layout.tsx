@@ -94,6 +94,18 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="maintenance-form"
+            options={{
+              headerShown: true,
+              headerBackTitle: 'Voltar',
+              headerTitle: 'Manutenção',
+              headerStyle: { backgroundColor: '#f8fafc' },
+              headerTintColor: '#0f172a',
+              headerTitleStyle: { fontWeight: '600', color: '#0f172a' },
+              headerShadowVisible: false
+            }}
+          />
+          <Stack.Screen
             name="warranty/[id]"
             options={{
               headerShown: true,
