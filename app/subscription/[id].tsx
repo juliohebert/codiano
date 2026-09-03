@@ -2,30 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
-import { loadBills, updateBill, removeBill, addBill } from '../../src/bills/storage';
-import { scheduleBillAfterSave } from '../../src/bills/notifications';
-import { cancelBillNotification } from '../../src/notifications/bills';
-import type { Bill, BillRecurrence } from '../../src/bills/types';
-import { formatDateLocal, toLocalDate, addDaysLocal } from '../../src/common/dates';
-
-function addMonths(date: string, months: number): string {
-  const digits = date.replace(/\D/g, '').slice(0, 8);
-  if (digits.length !== 8) {
-    throw new Error('Data inválida');
-  }
-  const day = Number(digits.slice(0, 2));
-  const month = Number(digits.slice(2, 4)) - 1;
-  const year = Number(digits.slice(4, 8));
-  const d = new Date(year, month, day);
-  if (isNaN(d.getTime())) {
-    throw new Error('Data inválida');
-  }
-  const targetDate = new Date(year, month + months, day);
-  if (targetDate.getDate() !== day) {
-    targetDate.setDate(0);
-  }
-  return targetDate.toISOString().slice(0, 10);
-}
+import { loadSubscriptions, updateSubscription, removeSubscription } from '../../src/subscriptions/storage';
+import type { Subscription } from '../../src/subscriptions/types';
+import { formatDateLocal, toLocalDate } from '../../src/common/dates';
 
 function formatCurrency(value?: number) {
   if (typeof value !== 'number') return '—';
@@ -50,31 +29,31 @@ function toDisplayDate(iso: string): string {
   return `${day}/${month}/${year}`;
 }
 
-export default function BillDetailScreen() {
+export default function SubscriptionDetailScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const id = typeof params.id === 'string' ? params.id : '';
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [bill, setBill] = useState<Bill | null>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
 
   const load = useCallback(async () => {
     if (!id || id === '0') {
-      setError('Identificador da conta inválido.');
+      setError('Identificador da assinatura inválido.');
       setLoading(false);
       return;
     }
     try {
-      const data = await loadBills();
+      const data = await loadSubscriptions();
       const current = data.find((item) => item.id === id) ?? null;
       if (!current) {
-        Alert.alert('Conta não encontrada');
+        Alert.alert('Assinatura não encontrada');
         router.back();
         return;
       }
-      setBill(current);
+      setSubscription(current);
     } catch {
-      setError('Não foi possível carregar a conta.');
+      setError('Não foi possível carregar a assinatura.');
     } finally {
       setLoading(false);
     }
@@ -84,62 +63,15 @@ export default function BillDetailScreen() {
     load();
   }, [load]);
 
-  const ensureId = useCallback(() => {
-    if (!id || id === '0') {
-      setError('Identificador da conta inválido.');
-      setLoading(false);
-      return false;
-    }
-    return true;
-  }, [id]);
-
-  const markAsPaid = async () => {
-    if (!bill || !id) return;
-
-    const nowIso = new Date().toISOString();
-    const paidBill: Bill = {
-      ...bill,
-      status: 'paid',
-      paidAt: nowIso,
-      updatedAt: nowIso
-    };
-
+  const markAsCancelled = async () => {
+    if (!subscription || !id) return;
     try {
-      const current = (await loadBills()).find((item) => item.id === id);
-      if (!current) {
-        Alert.alert('Conta não encontrada');
-        return;
-      }
-
-      if (current.recurrence === 'monthly') {
-        const nextDue = addMonths(current.dueDate, 1);
-        const all = await loadBills();
-        const alreadyHasNext = all.some(
-          (item) => item.id !== id && item.status !== 'paid' && item.dueDate === nextDue && item.name === current.name
-        );
-
-        if (!alreadyHasNext) {
-          const nextId = `local-${Date.now()}`;
-          const nextBill: Bill = {
-            id: nextId,
-            name: current.name,
-            amount: current.amount,
-            dueDate: nextDue,
-            recurrence: current.recurrence,
-            reminderDaysBefore: current.reminderDaysBefore,
-            note: current.note,
-            status: 'upcoming',
-            createdAt: nowIso,
-            updatedAt: nowIso
-          };
-
-          await addBill(nextBill);
-          await scheduleBillAfterSave(nextBill);
-        }
-      }
-
-      await updateBill(paidBill);
-      await cancelBillNotification(id);
+      const updated: Subscription = {
+        ...subscription,
+        status: 'cancelled',
+        updatedAt: new Date().toISOString()
+      };
+      await updateSubscription(updated);
       await load();
     } catch {
       Alert.alert('Não foi possível atualizar.');
@@ -147,35 +79,29 @@ export default function BillDetailScreen() {
   };
 
   const reopen = async () => {
-    if (!bill || !id) return;
+    if (!subscription || !id) return;
     try {
-      const all = await loadBills();
-      const current = all.find((item) => item.id === id);
-      if (!current) {
-        Alert.alert('Conta não encontrada');
-        return;
-      }
-
-      const updated: Bill = {
-        ...current,
-        status: 'upcoming',
-        paidAt: undefined,
+      const updated: Subscription = {
+        ...subscription,
+        status: 'active',
         updatedAt: new Date().toISOString()
       };
+      await updateSubscription(updated);
+      await load();
+    } catch {
+      Alert.alert('Não foi possível atualizar.');
+    }
+  };
 
-      if (current.recurrence === 'monthly') {
-        const nextDue = addMonths(current.dueDate, 1);
-        const next = all.find(
-          (item) => item.id !== id && item.status !== 'paid' && item.dueDate === nextDue && item.name === current.name
-        );
-        if (next) {
-          await removeBill(next.id);
-          await cancelBillNotification(next.id);
-        }
-      }
-
-      await updateBill(updated);
-      await scheduleBillAfterSave(updated);
+  const pause = async () => {
+    if (!subscription || !id) return;
+    try {
+      const updated: Subscription = {
+        ...subscription,
+        status: 'paused',
+        updatedAt: new Date().toISOString()
+      };
+      await updateSubscription(updated);
       await load();
     } catch {
       Alert.alert('Não foi possível atualizar.');
@@ -185,8 +111,8 @@ export default function BillDetailScreen() {
   const confirmDelete = async () => {
     if (!id) return;
     Alert.alert(
-      'Excluir conta',
-      'Deseja excluir esta conta?',
+      'Excluir assinatura',
+      'Deseja excluir esta assinatura?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -194,9 +120,8 @@ export default function BillDetailScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await cancelBillNotification(id);
-              await removeBill(id);
-              router.replace('/(tabs)/bills');
+              await removeSubscription(id);
+              router.replace('/(tabs)/subscriptions');
             } catch {
               Alert.alert('Não foi possível excluir.');
             }
@@ -218,18 +143,19 @@ export default function BillDetailScreen() {
     );
   }
 
-  if (error || !bill) {
+  if (error || !subscription) {
     return (
       <SafeAreaView style={styles.safeArea} edges={['left','right','bottom']}>
         <View style={styles.statusBox}>
           <Text style={styles.statusTitle}>Algo deu errado</Text>
-          <Text style={styles.statusText}>{error ?? 'Conta não encontrada.'}</Text>
+          <Text style={styles.statusText}>{error ?? 'Assinatura não encontrada.'}</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  const recurrenceLabel = bill.recurrence === 'monthly' ? 'Mensal' : 'Única';
+  const frequencyLabel = subscription.frequency === 'yearly' ? 'Anual' : 'Mensal';
+  const statusLabel = subscription.status === 'active' ? 'Ativa' : subscription.status === 'paused' ? 'Pausada' : 'Cancelada';
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['left','right','bottom']}>
@@ -237,43 +163,51 @@ export default function BillDetailScreen() {
         <View style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.label}>Nome</Text>
-            <Text style={styles.value}>{bill.name}</Text>
+            <Text style={styles.value}>{subscription.name}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Valor</Text>
-            <Text style={styles.value}>{formatCurrency(bill.amount)}</Text>
+            <Text style={styles.value}>{formatCurrency(subscription.amount)}</Text>
           </View>
           <View style={styles.row}>
-            <Text style={styles.label}>Vencimento</Text>
-            <Text style={styles.value}>{toDisplayDate(bill.dueDate)}</Text>
+            <Text style={styles.label}>Próximo vencimento</Text>
+            <Text style={styles.value}>{toDisplayDate(subscription.nextDueDate)}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Recorrência</Text>
-            <Text style={styles.value}>{recurrenceLabel}</Text>
+            <Text style={styles.value}>{frequencyLabel}</Text>
           </View>
           <View style={styles.row}>
             <Text style={styles.label}>Lembrete</Text>
-            <Text style={styles.value}>{bill.reminderDaysBefore} dia(s) antes</Text>
+            <Text style={styles.value}>{subscription.reminderDaysBefore} dia(s) antes</Text>
           </View>
-          {!!bill.note ? (
+          <View style={styles.row}>
+            <Text style={styles.label}>Status</Text>
+            <Text style={styles.value}>{statusLabel}</Text>
+          </View>
+          {!!subscription.note ? (
             <View style={styles.row}>
               <Text style={styles.label}>Observação</Text>
-              <Text style={styles.value}>{bill.note}</Text>
+              <Text style={styles.value}>{subscription.note}</Text>
             </View>
           ) : null}
         </View>
 
         <View style={styles.actions}>
-          {bill.status !== 'paid' ? (
-            <Pressable style={styles.primaryButton} onPress={markAsPaid}>
-              <Text style={styles.primaryButtonText}>Marcar como paga</Text>
+          {subscription.status === 'active' ? (
+            <Pressable style={styles.secondaryButton} onPress={pause}>
+              <Text style={styles.secondaryButtonText}>Pausar</Text>
+            </Pressable>
+          ) : subscription.status === 'paused' ? (
+            <Pressable style={styles.secondaryButton} onPress={reopen}>
+              <Text style={styles.secondaryButtonText}>Reativar</Text>
             </Pressable>
           ) : (
             <Pressable style={styles.secondaryButton} onPress={reopen}>
-              <Text style={styles.secondaryButtonText}>Reabrir conta</Text>
+              <Text style={styles.secondaryButtonText}>Reabrir</Text>
             </Pressable>
           )}
-          <Pressable style={styles.secondaryButton} onPress={() => router.push(`/(tabs)/bill-form?id=${encodeURIComponent(id)}`)}>
+          <Pressable style={styles.secondaryButton} onPress={() => router.push(`/(tabs)/subscription-form?id=${encodeURIComponent(id)}`)}>
             <Text style={styles.secondaryButtonText}>Editar</Text>
           </Pressable>
           <Pressable style={styles.dangerButton} onPress={confirmDelete}>
@@ -318,17 +252,6 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: 10
-  },
-  primaryButton: {
-    backgroundColor: '#0f172a',
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: 'center'
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '700'
   },
   secondaryButton: {
     backgroundColor: '#ffffff',

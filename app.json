@@ -5,21 +5,10 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "splash": {
-      "backgroundColor": "#f8fafc",
-      "resizeMode": "contain",
-      "image": "./assets/splash.png"
-    },
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.georeminder.app",
-      "splash": {
-        "backgroundColor": "#f8fafc",
-        "resizeMode": "contain",
-        "image": "./assets/splash.png",
-        "tabletImage": "./assets/splash-tablet.png"
-      }
+      "bundleIdentifier": "com.georeminder.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -28,11 +17,6 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "splash": {
-        "backgroundColor": "#f8fafc",
-        "resizeMode": "contain",
-        "image": "./assets/splash.png"
-      },
       "predictiveBackGestureEnabled": false
     },
     "web": {
@@ -40,7 +24,9 @@
     },
     "plugins": [
       "expo-router",
-      "expo-font"
+      "expo-font",
+      "expo-sharing",
+      "expo-status-bar"
     ]
   }
 }

@@ -6,13 +6,17 @@ import { Ionicons } from '@expo/vector-icons';
 
 type Props = {};
 
+const FINANCE_ROUTES = new Set(['bills', 'subscriptions', 'history']);
+const DOCUMENTS_ROUTES = new Set(['documents', 'warranties']);
+const MORE_ROUTES = new Set(['shipments', 'maintenances', 'settings']);
+
 export default function TabsLayout() {
   const segments = useSegments() as string[];
-  const isReminders = segments[0] === '(tabs)' && (!segments[1] || segments[1] === 'index');
-  const isShipments = segments[0] === '(tabs)' && segments[1] === 'shipments';
-  const isBills = segments[0] === '(tabs)' && segments[1] === 'bills';
-  const isHistory = segments[0] === '(tabs)' && segments[1] === 'history';
-  const isSettings = segments[0] === '(tabs)' && segments[1] === 'settings';
+  const tab = segments[1] ?? 'index';
+  const isReminders = tab === 'index' || tab === '';
+  const isFinances = FINANCE_ROUTES.has(tab);
+  const isDocuments = DOCUMENTS_ROUTES.has(tab);
+  const isMore = MORE_ROUTES.has(tab);
   const insets = useSafeAreaInsets();
 
   const navigateIfNeeded = (target: string[]) => {
@@ -39,60 +43,48 @@ export default function TabsLayout() {
           style={[styles.tab, isReminders && styles.tabActive]}
           onPress={() => navigateIfNeeded(['(tabs)'])}
           accessibilityRole="button"
-          accessibilityLabel="Lembretes"
+          accessibilityLabel="Início"
         >
           <Ionicons
-            name={isReminders ? 'location' : 'location-outline'}
+            name={isReminders ? 'home' : 'home-outline'}
             size={24}
             color={isReminders ? '#0f172a' : '#64748b'}
           />
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, isShipments && styles.tabActive]}
-          onPress={() => navigateIfNeeded(['(tabs)', 'shipments'])}
+          style={[styles.tab, isFinances && styles.tabActive]}
+          onPress={() => navigateIfNeeded(['(tabs)', 'finances'])}
           accessibilityRole="button"
-          accessibilityLabel="Encomendas"
+          accessibilityLabel="Finanças"
         >
           <Ionicons
-            name={isShipments ? 'cube' : 'cube-outline'}
+            name={isFinances ? 'cash' : 'cash-outline'}
             size={24}
-            color={isShipments ? '#0f172a' : '#64748b'}
+            color={isFinances ? '#0f172a' : '#64748b'}
           />
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, isBills && styles.tabActive]}
-          onPress={() => navigateIfNeeded(['(tabs)', 'bills'])}
+          style={[styles.tab, isDocuments && styles.tabActive]}
+          onPress={() => navigateIfNeeded(['(tabs)', 'documents'])}
           accessibilityRole="button"
-          accessibilityLabel="Contas"
+          accessibilityLabel="Documentos"
         >
           <Ionicons
-            name={isBills ? 'cash' : 'cash-outline'}
+            name={isDocuments ? 'document-text' : 'document-text-outline'}
             size={24}
-            color={isBills ? '#0f172a' : '#64748b'}
+            color={isDocuments ? '#0f172a' : '#64748b'}
           />
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, isHistory && styles.tabActive]}
-          onPress={() => navigateIfNeeded(['(tabs)', 'history'])}
+          style={[styles.tab, isMore && styles.tabActive]}
+          onPress={() => navigateIfNeeded(['(tabs)', 'more'])}
           accessibilityRole="button"
-          accessibilityLabel="Histórico"
+          accessibilityLabel="Mais"
         >
           <Ionicons
-            name={isHistory ? 'time' : 'time-outline'}
+            name={isMore ? 'apps' : 'apps-outline'}
             size={24}
-            color={isHistory ? '#0f172a' : '#64748b'}
-          />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, isSettings && styles.tabActive]}
-          onPress={() => navigateIfNeeded(['(tabs)', 'settings'])}
-          accessibilityRole="button"
-          accessibilityLabel="Configurações"
-        >
-          <Ionicons
-            name={isSettings ? 'settings' : 'settings-outline'}
-            size={24}
-            color={isSettings ? '#0f172a' : '#64748b'}
+            color={isMore ? '#0f172a' : '#64748b'}
           />
         </TouchableOpacity>
       </View>

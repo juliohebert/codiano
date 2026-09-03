@@ -2,38 +2,29 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, FlatList, Pressable, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
-import { loadBills } from '../../src/bills/storage';
-import type { Bill } from '../../src/bills/types';
-import { formatDateLocal, parseLocalDate, toLocalDate } from '../../src/common/dates';
+import { loadMaintenances } from '../../src/maintenance/storage';
+import type { Maintenance } from '../../src/maintenance/types';
+import { formatDateLocal, parseLocalDate } from '../../src/maintenance/dates';
 
-type BillSectionKey = 'upcoming' | 'overdue' | 'paid';
+type MaintenanceSectionKey = 'upcoming' | 'overdue' | 'done';
 
-type Section = { key: BillSectionKey; title: string; data: Bill[] };
+type Section = { key: MaintenanceSectionKey; title: string; data: Maintenance[] };
 
-function classify(bill: Bill): BillSectionKey {
-  if (bill.status === 'paid') return 'paid';
+function classify(maintenance: Maintenance): MaintenanceSectionKey {
+  if (maintenance.status === 'done') return 'done';
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const { year, month, day } = parseLocalDate(bill.dueDate);
-  const due = toLocalDate(year, month, day);
+  const { year, month, day } = parseLocalDate(maintenance.dueDate);
+  const due = new Date(year, month - 1, day);
   if (due < today) return 'overdue';
   return 'upcoming';
 }
 
-const SECTIONS: { key: BillSectionKey; title: string }[] = [
+const SECTIONS: { key: MaintenanceSectionKey; title: string }[] = [
   { key: 'upcoming', title: 'Próximas' },
-  { key: 'overdue', title: 'Vencidas' },
-  { key: 'paid', title: 'Pagas' }
+  { key: 'overdue', title: 'Atrasadas' },
+  { key: 'done', title: 'Concluídas' }
 ];
-
-function formatCurrency(value?: number) {
-  if (typeof value !== 'number') return '';
-  try {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-  } catch {
-    return `R$ ${value.toFixed(2)}`;
-  }
-}
 
 function formatDate(value: string) {
   try {
@@ -43,20 +34,20 @@ function formatDate(value: string) {
   }
 }
 
-export default function BillsScreen() {
+export default function MaintenancesScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [bills, setBills] = useState<Bill[]>([]);
-  const [tab, setTab] = useState<BillSectionKey>('upcoming');
+  const [maintenances, setMaintenances] = useState<Maintenance[]>([]);
+  const [tab, setTab] = useState<MaintenanceSectionKey>('upcoming');
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await loadBills();
-      setBills(data);
+      const data = await loadMaintenances();
+      setMaintenances(data);
     } catch {
-      setError('Não foi possível carregar suas contas.');
+      setError('Não foi possível carregar suas manutenções.');
     } finally {
       setLoading(false);
     }
@@ -73,40 +64,39 @@ export default function BillsScreen() {
   );
 
   const sections: Section[] = useMemo(() => {
-    const grouped = new Map<BillSectionKey, Bill[]>();
+    const grouped = new Map<MaintenanceSectionKey, Maintenance[]>();
     for (const section of SECTIONS) {
       grouped.set(section.key, []);
     }
-    for (const bill of bills) {
-      const key = classify(bill);
-      grouped.set(key, [...(grouped.get(key) ?? []), bill]);
+    for (const maintenance of maintenances) {
+      const key = classify(maintenance);
+      grouped.set(key, [...(grouped.get(key) ?? []), maintenance]);
     }
-    const sorted = (items: Bill[]) =>
+    const sorted = (items: Maintenance[]) =>
       [...items].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
     return SECTIONS.map((section) => ({
       key: section.key,
       title: section.title,
       data: sorted(grouped.get(section.key) ?? [])
     }));
-  }, [bills]);
+  }, [maintenances]);
 
   const activeSection = useMemo(() => sections.find((item) => item.key === tab) ?? { key: tab, title: '', data: [] }, [sections, tab]);
 
-  const renderItem = ({ item }: { item: Bill }) => {
-    const statusColor = item.status === 'paid' ? '#065f46' : tab === 'overdue' ? '#991b1b' : '#1e3a8a';
-    const statusBackground = item.status === 'paid' ? '#ecfdf5' : tab === 'overdue' ? '#fef2f2' : '#eef2ff';
-    const statusLabel = item.status === 'paid' ? 'Paga' : tab === 'overdue' ? 'Vencida' : 'Aberta';
+  const renderItem = ({ item }: { item: Maintenance }) => {
+    const statusColor = item.status === 'done' ? '#065f46' : tab === 'overdue' ? '#991b1b' : '#1e3a8a';
+    const statusBackground = item.status === 'done' ? '#ecfdf5' : tab === 'overdue' ? '#fef2f2' : '#eef2ff';
+    const statusLabel = item.status === 'done' ? 'Concluída' : tab === 'overdue' ? 'Atrasada' : 'Próxima';
     return (
-      <Pressable style={styles.item} onPress={() => router.push(`/bill/${item.id}`)}>
+      <Pressable style={styles.item} onPress={() => router.push(`/maintenance/${item.id}`)}>
         <View style={styles.itemHeader}>
-          <Text style={styles.itemTitle} numberOfLines={1}>{item.name}</Text>
+          <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
           <View style={[styles.badge, { backgroundColor: statusBackground }]}>
             <Text style={[styles.badgeText, { color: statusColor }]}>{statusLabel}</Text>
           </View>
         </View>
         <View style={styles.itemMetaRow}>
           <Text style={styles.itemMeta}>{formatDate(item.dueDate)}</Text>
-          {typeof item.amount === 'number' ? <Text style={styles.itemAmount}>{formatCurrency(item.amount)}</Text> : null}
         </View>
         {!!item.note ? <Text style={styles.itemNote} numberOfLines={2}>{item.note}</Text> : null}
       </Pressable>
@@ -116,8 +106,8 @@ export default function BillsScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top','left','right']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Contas</Text>
-        <Text style={styles.headerSubtitle}>Organize contas, vencimentos e lembretes.</Text>
+        <Text style={styles.headerTitle}>Manutenções</Text>
+        <Text style={styles.headerSubtitle}>Organize manutenções e status.</Text>
       </View>
 
       <View style={styles.tabRow}>
@@ -141,7 +131,7 @@ export default function BillsScreen() {
         <View style={styles.statusBox}>
           <ActivityIndicator color="#0f172a" />
           <Text style={styles.statusTitle}>Carregando</Text>
-          <Text style={styles.statusText}>Buscando suas contas...</Text>
+          <Text style={styles.statusText}>Buscando suas manutenções...</Text>
         </View>
       ) : error ? (
         <View style={styles.statusBox}>
@@ -150,8 +140,8 @@ export default function BillsScreen() {
         </View>
       ) : activeSection.data.length === 0 ? (
         <View style={styles.statusBox}>
-          <Text style={styles.statusTitle}>Nenhuma conta</Text>
-          <Text style={styles.statusText}>Cadastre uma conta para começar.</Text>
+          <Text style={styles.statusTitle}>Nenhuma manutenção</Text>
+          <Text style={styles.statusText}>Cadastre uma manutenção para começar.</Text>
         </View>
       ) : (
         <FlatList
@@ -165,9 +155,9 @@ export default function BillsScreen() {
 
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => router.push('/bill-form')}
+        onPress={() => router.push('/maintenance-form')}
         accessibilityRole="button"
-        accessibilityLabel="Adicionar conta"
+        accessibilityLabel="Adicionar manutenção"
         activeOpacity={0.85}
       >
         <Text style={styles.fabLabel}>＋</Text>
@@ -265,11 +255,6 @@ const styles = StyleSheet.create({
   itemMeta: {
     fontSize: 13,
     color: '#475569'
-  },
-  itemAmount: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#0f172a'
   },
   itemNote: {
     fontSize: 13,

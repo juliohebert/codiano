@@ -1,20 +1,13 @@
 import * as Notifications from 'expo-notifications';
 import { scheduleLocalNotification, requestNotificationPermission } from './notifications';
 import type { Bill } from '../../src/bills/types';
+import { computeReminderDate } from './bill-reminder';
 
 export type BillNotificationSchedule = {
   identifier: string;
   dueDate: string;
   reminderDaysBefore: number;
 };
-
-function computeReminderDate(bill: Bill): Date {
-  const due = new Date(bill.dueDate);
-  due.setHours(0, 0, 0, 0);
-  const reminder = new Date(due);
-  reminder.setDate(reminder.getDate() - bill.reminderDaysBefore);
-  return reminder;
-}
 
 export async function scheduleBillNotification(bill: Bill): Promise<string | null> {
   try {
