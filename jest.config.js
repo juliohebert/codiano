@@ -5,7 +5,7 @@ export default {
   testMatch: ['**/__tests__/**/*.test.ts'],
   moduleFileExtensions: ['ts', 'js', 'json'],
   transform: {
-    '^.+\\.ts$': ['ts-jest', { tsconfig: { module: 'commonjs' } }],
+    '^.+\\.ts$': ['ts-jest', { tsconfig: 'tsconfig.json' }],
     '^.+\\.(js|jsx)$': 'ts-jest'
   },
   transformIgnorePatterns: [
