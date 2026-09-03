@@ -1,44 +1,43 @@
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, FlatList, Pressable, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { loadDocuments } from '../../src/documents/storage';
-import type { Document } from '../../src/documents/types';
-import { formatDateLocal } from '../../src/common/dates';
 
-type Tab = 'active' | 'expired';
+type Entry = {
+  id: string;
+  title: string;
+  subtitle: string;
+  route: string;
+};
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: 'active', label: 'Ativos' },
-  { key: 'expired', label: 'Vencidos' }
-];
-
-function classify(document: Document): 'active' | 'expired' {
-  return document.status === 'expired' ? 'expired' : 'active';
-}
-
-function formatDate(value: string) {
-  try {
-    return formatDateLocal(value);
-  } catch {
-    return value;
+const ENTRIES: Entry[] = [
+  {
+    id: 'documents',
+    title: 'Documentos',
+    subtitle: 'Validades, anexos e documentos pessoais.',
+    route: '/(tabs)/documents/documents'
+  },
+  {
+    id: 'warranties',
+    title: 'Garantias',
+    subtitle: 'Produtos, notas fiscais e prazos de garantia.',
+    route: '/(tabs)/warranties'
   }
-}
+];
 
 export default function DocumentsScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [tab, setTab] = useState<Tab>('active');
+  const [items, setItems] = useState<Entry[]>([]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await loadDocuments();
-      setDocuments(data);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      setItems(ENTRIES);
     } catch {
-      setError('Não foi possível carregar os documentos.');
+      setError('Não foi possível carregar Documentos.');
     } finally {
       setLoading(false);
     }
@@ -48,88 +47,48 @@ export default function DocumentsScreen() {
     refresh();
   }, [refresh]);
 
-  const visible = documents.filter((item) => classify(item) === tab);
-
-  const renderItem = ({ item }: { item: Document }) => {
-    const statusColor = classify(item) === 'expired' ? '#991b1b' : '#1e3a8a';
-    const statusBackground = classify(item) === 'expired' ? '#fef2f2' : '#eef2ff';
-    const statusLabel = classify(item) === 'expired' ? 'Vencido' : 'Ativo';
-    return (
-      <Pressable style={styles.item} onPress={() => router.push(`/document/${item.id}`)}>
-        <View style={styles.itemHeader}>
-          <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
-          <View style={[styles.badge, { backgroundColor: statusBackground }]}>
-            <Text style={[styles.badgeText, { color: statusColor }]}>{statusLabel}</Text>
-          </View>
-        </View>
-        <View style={styles.itemMetaRow}>
-          <Text style={styles.itemMeta}>Validade: {formatDate(item.validUntil)}</Text>
-        </View>
-        {!!item.note ? <Text style={styles.itemNote} numberOfLines={2}>{item.note}</Text> : null}
-        {item.file ? <Text style={styles.itemFile}>Anexo: {item.file.mimeType.startsWith('image/') ? 'Imagem' : 'PDF'}</Text> : null}
-      </Pressable>
-    );
-  };
+  const renderItem = ({ item }: { item: Entry }) => (
+    <Pressable style={styles.item} onPress={() => router.push(item.route)}>
+      <View style={styles.itemHeader}>
+        <Text style={styles.itemTitle} numberOfLines={1}>{item.title}</Text>
+        <Text style={styles.itemChevron}>›</Text>
+      </View>
+      <Text style={styles.itemSubtitle} numberOfLines={2}>{item.subtitle}</Text>
+    </Pressable>
+  );
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top','left','right']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Documentos</Text>
-        <Text style={styles.headerSubtitle}>Acompanhe validades e alertas úteis.</Text>
-      </View>
-
-      <View style={styles.tabRow}>
-        {TABS.map((item) => {
-          const selected = tab === item.key;
-          return (
-            <Pressable
-              key={item.key}
-              onPress={() => setTab(item.key)}
-              style={[styles.tab, selected && styles.tabActive]}
-              accessibilityRole="button"
-              accessibilityLabel={item.label}
-            >
-              <Text style={[styles.tabLabel, selected && styles.tabLabelActive]}>{item.label}</Text>
-            </Pressable>
-          );
-        })}
+        <Text style={styles.headerSubtitle}>Validades, garantias e arquivos pessoais.</Text>
       </View>
 
       {loading ? (
         <View style={styles.statusBox}>
           <ActivityIndicator color="#0f172a" />
           <Text style={styles.statusTitle}>Carregando</Text>
-          <Text style={styles.statusText}>Buscando seus documentos...</Text>
+          <Text style={styles.statusText}>Buscando opções...</Text>
         </View>
       ) : error ? (
         <View style={styles.statusBox}>
           <Text style={styles.statusTitle}>Algo deu errado</Text>
           <Text style={styles.statusText}>{error}</Text>
         </View>
-      ) : visible.length === 0 ? (
+      ) : items.length === 0 ? (
         <View style={styles.statusBox}>
-          <Text style={styles.statusTitle}>Nenhum documento</Text>
-          <Text style={styles.statusText}>Cadastre um documento para começar.</Text>
+          <Text style={styles.statusTitle}>Nenhuma opção</Text>
+          <Text style={styles.statusText}>Nenhuma área de documentos disponível.</Text>
         </View>
       ) : (
         <FlatList
           style={{ flex: 1 }}
           contentContainerStyle={styles.listContent}
-          data={visible}
+          data={items}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
         />
       )}
-
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => router.push('/document-form')}
-        accessibilityRole="button"
-        accessibilityLabel="Adicionar documento"
-        activeOpacity={0.85}
-      >
-        <Text style={styles.fabLabel}>＋</Text>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -154,31 +113,6 @@ const styles = StyleSheet.create({
     color: '#475569',
     marginTop: 2
   },
-  tabRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 12,
-    gap: 8,
-    marginTop: 8,
-    marginBottom: 4
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 10,
-    alignItems: 'center',
-    backgroundColor: '#eef2f7'
-  },
-  tabActive: {
-    backgroundColor: '#0f172a'
-  },
-  tabLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#475569'
-  },
-  tabLabelActive: {
-    color: '#ffffff'
-  },
   listContent: {
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -189,7 +123,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#e2e8f0',
-    padding: 12,
+    padding: 14,
     gap: 6
   },
   itemHeader: {
@@ -204,34 +138,14 @@ const styles = StyleSheet.create({
     color: '#0f172a',
     flex: 1
   },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    overflow: 'hidden'
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '700'
-  },
-  itemMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12
-  },
-  itemMeta: {
-    fontSize: 13,
-    color: '#475569'
-  },
-  itemNote: {
-    fontSize: 13,
-    color: '#475569'
-  },
-  itemFile: {
+  itemSubtitle: {
     fontSize: 13,
     color: '#475569',
-    marginTop: 4
+    lineHeight: 18
+  },
+  itemChevron: {
+    fontSize: 22,
+    color: '#475569'
   },
   statusBox: {
     flex: 1,
@@ -250,27 +164,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#475569',
     textAlign: 'center'
-  },
-  fab: {
-    position: 'absolute',
-    right: 16,
-    bottom: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#0f172a',
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4
-  },
-  fabLabel: {
-    color: '#ffffff',
-    fontSize: 30,
-    lineHeight: 32,
-    fontWeight: '600'
   }
 });

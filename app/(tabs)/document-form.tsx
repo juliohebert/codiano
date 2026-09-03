@@ -174,7 +174,7 @@ export default function DocumentFormScreen() {
     setSaving(true);
     try {
       await addDocument(created);
-      router.replace('/(tabs)/documents');
+      router.replace('/(tabs)/documents/documents');
     } catch {
       Alert.alert('Não foi possível salvar.');
       setSaving(false);
